@@ -1,0 +1,158 @@
+require 'spec_helper'
+
+describe "Authentication" do
+# describe authentication DA.1.0
+  subject { page }
+
+  describe "signin page" do
+    # DA.1.0.SP.1.0
+    before { visit signin_path }
+
+    it { should have_selector('h1',    text: 'Sign in') }
+    it { should have_selector('title', text: 'Sign in') }
+  end
+  #DA1.0
+
+   describe "signin" do
+    #DA.1.0.Signin.1.0
+      before { visit signin_path }
+
+      describe "with invalid information" do
+    #DA.Si.wii.1.0
+        before { click_button "Sign in" }
+
+        it { should have_selector('title', text: 'Sign in') }
+        it { should have_selector('div.alert.alert-error', text: 'Invalid') }
+
+        describe "after visiting another page" do
+    #DA.Si.wii.2.0
+          before { click_link "Home" }
+          it { should_not have_selector('div.alert.alert-error') }
+        end
+      end
+    #DA.Si.1.0
+
+    describe "with valid information" do
+      #DA.Si.wvi.1.0
+      let(:user) { FactoryGirl.create(:user) }
+      before { sign_in user }
+
+      it { should have_selector('title', text: user.name) }
+      it { should have_link('Users',    href: users_path) }
+      it { should have_link('Profile', href: user_path(user)) }
+      it { should have_link('Settings', href: edit_user_path(user)) }
+      it { should have_link('Sign out', href: signout_path) }
+      it { should_not have_link('Sign in', href: signin_path) }
+
+       describe "followed by signout" do
+      #DA.Si.wvi.2.0
+        before { click_link "Sign out" }
+        it { should have_link('Sign in') }
+      end     
+    end
+    #DA.Si
+  end
+    #DA.1.0
+  describe "authorization" do
+    #DA.Au.1.0
+    describe "for non-signed-in users" do
+      #DA.Au.Nsi.1.0
+      let(:user) { FactoryGirl.create(:user) }
+
+       describe "when attempting to visit a protected page" do
+      #DA.Au.Nsi.2.0
+        before do
+        #DA.Au.Nsi.3.0
+          visit edit_user_path(user)
+          fill_in "Email",    with: user.email
+          fill_in "Password", with: user.password
+          click_button "Sign in"
+        end
+        #DA.Au.Nsi.3.1
+
+        describe "after signing in" do
+        #DA.Au.Nsi.4.1
+          it "should render the desired protected page" do
+            page.should have_selector('title', text: 'Edit user')
+          end
+        end
+        #DA.Au.Nsi.5.3
+        describe "in the Microposts controller" do
+          #DA.Au.Nsi.6.3
+          describe "submitting to the create action" do
+            #DA.Au.Nsi.7.3
+            before { post microposts_path }
+            specify { response.should redirect_to(signin_path) }
+          end
+          #DA.Au.Nsi.8.4
+          describe "submitting to the destroy action" do
+            #DA.Au.Nsi.7.4
+            before { delete micropost_path(FactoryGirl.create(:micropost)) }
+            specify { response.should redirect_to(signin_path) }
+          end
+        end
+        #DA.Au.Nsi.7.6
+      describe "in the Users controller" do
+        #Da.Au.Nsi.8.6
+        describe "visiting the edit page" do
+          #DA.Au.Nsi.9.6
+          before { visit edit_user_path(user) }
+          it { should have_selector('title', text: 'Sign in') }
+        end
+        #Da.Au.Nsi.9.7
+
+        describe "submitting to the update action" do
+          #DA.Au.Nsi.10.7
+          before { put user_path(user) }
+          specify { response.should redirect_to(signin_path) }
+        end
+        #DA.Au.Nsi.10.8
+
+        describe "visiting the user index" do
+          #DA.Au.Nsi.11.8
+          before { visit users_path }
+          it { should have_selector('title', text: 'Sign in') }
+        end
+      end
+
+    end
+    #DA.Au
+
+      describe "as wrong user" do
+        #DA.Au.Awu.1.0
+      let(:user) { FactoryGirl.create(:user) }
+      let(:wrong_user) { FactoryGirl.create(:user, email: "wrong@example.com") }
+      before { sign_in user }
+
+      describe "visiting Users#edit page" do
+        #DA.Au.Awu.2.0
+        before { visit edit_user_path(wrong_user) }
+        it { should_not have_selector('title', text: full_title('Edit user')) }
+      end
+      #DA.Au.Awu.2.1
+      describe "submitting a PUT request to the Users#update action" do
+        #DA.Au.Awu.3.1
+        before { put user_path(wrong_user) }
+        specify { response.should redirect_to(root_path) }
+      end
+    end
+    #DA.Au
+
+        describe "as non-admin user" do
+          #DA.Au.Anau.1.0
+          let(:user) { FactoryGirl.create(:user) }
+          let(:non_admin) { FactoryGirl.create(:user) }
+
+          before { sign_in non_admin }
+
+          describe "submitting a DELETE request to the Users#destroy action" do
+            #DA.Au.Anau.2.0
+            before { delete user_path(user) }
+            specify { response.should redirect_to(root_path) }        
+          end
+        end
+        #DA.Au.Anau.2.2
+        #Da.Au
+  end  
+  #Da
+end
